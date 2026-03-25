@@ -41,3 +41,73 @@
 ## 5. 법적 및 보안 가이드라인
 - **면책 조항**: "본 도구는 변환기일 뿐이며 금융 거래의 주체가 아님"을 브릿지 페이지 하단에 명시.
 - **난독화**: 최소한 Base64 이상의 암호화를 통해 주소창 내 계좌번호 직관 노출 차단.
+
+## 보안 검토 체크리스트
+
+### ✅ 라이브러리 공식 여부 확인
+
+| 라이브러리 | 공식 PyPI 이름 | 공식 문서 |
+|---|---|---|
+| Pillow | `Pillow` (대문자 P) | https://pillow.readthedocs.io |
+| imagehash | `ImageHash` | https://github.com/JohannesBuchner/imagehash |
+| send2trash | `Send2Trash` | https://github.com/arsenetar/send2trash |
+
+- `requirements.txt`에 **버전 고정** 필수 (`==` 사용)
+- 추가 라이브러리 도입 시 반드시 PyPI 공식 페이지 확인: https://pypi.org
+
+### ✅ 파일 접근 보안
+
+- 이 앱은 **읽기(Read)** 와 **삭제(Trash 이동)** 만 허용
+- 파일 경로는 반드시 `pathlib.Path`로 처리
+- 스캔 범위는 사용자가 선택한 폴더 내부로만 제한 (`is_safe_path` 함수)
+
+### ✅ 네트워크 통신 금지
+
+- 완전 로컬 동작 — 네트워크 요청 없음
+- `requests`, `urllib`, `http`, `socket` 관련 import 금지
+
+### ✅ 위험 코드 패턴 금지
+
+```python
+# ❌ 절대 사용 금지
+eval(...)          # 임의 코드 실행
+exec(...)          # 임의 코드 실행
+os.system(...)     # 셸 명령 실행
+__import__(...)    # 동적 import
+```
+
+- `subprocess.run`: OS 기본 뷰어/플레이어 열기 용도만 허용 (preview_card.py)
+
+### ✅ 삭제 기능 안전장치
+
+- 파일 삭제는 반드시 `send2trash` 사용 — `os.remove()`, `Path.unlink()` 직접 삭제 금지
+- 삭제 전 확인 다이얼로그 필수
+- 삭제 실행 전 대상 파일 목록을 콘솔에 로그 출력
+
+### 🚨 코드 작성/수정 후 마무리 절차 — 절대 생략 금지
+
+**코드를 한 줄이라도 작성하거나 수정했다면 반드시 아래 순서를 실행할 것.**
+**사용자가 명시적으로 요청하지 않아도 자동으로 실행해야 한다.**
+
+```
+🔍 보안 검토 중...
+   → grep으로 네트워크 요청 코드 없음 확인 (requests/urllib/socket 등)
+   → grep으로 위험 코드 패턴 없음 확인 (eval/exec/os.system/__import__)
+   → grep으로 직접 삭제 없음 확인 (os.remove/Path.unlink)
+   → subprocess.run 있으면 사유 명시 (OS 뷰어 열기 등 허용된 용도인지 확인)
+   → requirements.txt 라이브러리 공식 PyPI 여부 확인
+
+📝 CLAUDE.md 업데이트 중...
+   → 변경된 기능/파일 구조 반영
+   → 추가된 라이브러리 있으면 목록 갱신
+   → 마지막 업데이트 날짜 기록
+
+📦 Git commit 중...
+   → git add [변경된 파일들]
+   → git commit -m "feat/fix/refactor/docs: [변경 내용 요약]"
+
+🚀 Git push 중...
+   → git push origin main
+
+✅ 완료!
+```
